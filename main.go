@@ -28,9 +28,7 @@ func NewContainerNotifier(filePath string) (*ContainerNotifier, error) {
 	}
 	n.N = containerNotify
 
-	// unix.FAN_OPEN_PERM is what we want but we need to add a goroutine so it
-	// handles us opening the file to generate the hash
-	err = containerNotify.Mark(unix.FAN_MARK_ADD|unix.FAN_MARK_MOUNT, unix.FAN_OPEN, unix.AT_FDCWD, filePath)
+	err = containerNotify.Mark(unix.FAN_MARK_ADD|unix.FAN_MARK_MOUNT, unix.FAN_OPEN_EXEC_PERM, unix.AT_FDCWD, filePath)
 	if err != nil {
 		log.Printf("Marking %q: %s", filePath, err)
 	} else {
@@ -38,6 +36,45 @@ func NewContainerNotifier(filePath string) (*ContainerNotifier, error) {
 	}
 
 	return n, nil
+}
+
+func (n *ContainerNotifier) handleEvent(data *fanotify.EventMetadata) {
+	if data == nil {
+		return
+	}
+
+	defer data.Close()
+
+	path, err := data.GetPath()
+	if err != nil {
+		log.Fatalf("Couldn't get path")
+	}
+
+	dataFile := data.File()
+	defer dataFile.Close()
+
+	f, err := os.Open(path)
+	if err != nil {
+		log.Fatalf("Errorz: %v", err)
+	}
+	defer f.Close()
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		log.Fatalf("Errorz: %v", err)
+	}
+
+	hashString := hex.EncodeToString(h.Sum(nil))
+
+	if hashString == "d0b909b12e97eaf02285fe7962d2f5490ce165377b8fdf77faa2db517fc97f61" {
+		fmt.Printf("[ALLOWED] ")
+		n.N.ResponseAllow(data)
+	} else {
+		fmt.Printf("[DENIED] ")
+		n.N.ResponseDeny(data)
+	}
+
+	fmt.Printf("file %q hash %s\n", path, hashString)
 }
 
 func main() {
@@ -52,33 +89,6 @@ func main() {
 			log.Fatalf("Error getting event: %v\n", err)
 		}
 
-		if data == nil {
-			continue
-		}
-
-		dataFile := data.File()
-
-		path, err := data.GetPath()
-		if err != nil {
-			log.Fatalf("Couldn't get path")
-		}
-
-		f, err := os.Open(path)
-		if err != nil {
-			log.Fatalf("Errorz: %v", err)
-		}
-
-		h := sha256.New()
-		if _, err := io.Copy(h, f); err != nil {
-			log.Fatalf("Errorz: %v", err)
-		}
-		f.Close()
-
-		notifier.N.ResponseAllow(data)
-
-		dataFile.Close()
-		data.Close()
-
-		fmt.Printf("file %q hash %s\n", path, hex.EncodeToString(h.Sum(nil)))
+		go notifier.handleEvent(data)
 	}
 }
