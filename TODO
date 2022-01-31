@@ -1,0 +1,4 @@
+* Try to see if fanotify applies to submounts
+    * Probably not
+* What happens with /tmp and such?
+    * We'd probably need to mark all filesystems of the container
