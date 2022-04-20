@@ -7,6 +7,7 @@ require (
 	github.com/kinvolk/inspektor-gadget v0.4.3-0.20220408120513-a963be9a1dbe
 	github.com/s3rj1k/go-fanotify/fanotify v0.0.0-20210917134616-9c00a300bb7a
 	github.com/sirupsen/logrus v1.8.1
+	github.com/spf13/cobra v1.4.0
 	k8s.io/api v0.22.3
 	k8s.io/apimachinery v0.22.3
 	k8s.io/client-go v0.22.3
@@ -42,6 +43,7 @@ require (
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/klauspost/compress v1.13.5 // indirect
 	github.com/moby/locker v1.0.1 // indirect
